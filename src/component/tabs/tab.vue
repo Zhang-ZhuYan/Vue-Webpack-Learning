@@ -1,4 +1,4 @@
-<script>
+<script lang="jsx">
 export default {
     name: 'Tab',
     props: {
@@ -15,7 +15,7 @@ export default {
         }
     },
     render() {
-        const tabstyle = {
+        /*const tabstyle = {
             tab: true,
             active: this.active
         }
@@ -24,6 +24,9 @@ export default {
             <div class={tabstyle}>
                {tabLabel}
             </div>
+        )*/
+        return (
+            <div>1111</div>
         )
     }
 }

@@ -1,4 +1,4 @@
-<script>
+<script lang="jsx">
 export default {
     name: 'Tabs',
     props: {
@@ -9,11 +9,12 @@ export default {
     },
     render() {
         return (
-            <div class="tabs">
+            /*<div class="tabs">
                 <div class="tabs-nav">
                     {this.$slots.default}
                 </div>
-            </div>
+            </div>*/
+            <div>2222</div>
         )
     }
 }

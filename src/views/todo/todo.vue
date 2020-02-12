@@ -79,8 +79,8 @@
         components: {
             "todo-item": TodoItem,
             "todo-tabs": TodoTabs,
-            Tabs,
-            Tab
+            "tabs":Tabs,
+            "tab": Tab
         },
         methods: {
             addToDo(e){
