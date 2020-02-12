@@ -1,0 +1,116 @@
+
+.todo-tabs[data-v-6ca2fccc]{
+    display: -webkit-box;
+    display: flex;
+    -webkit-box-pack: justify;
+            justify-content: space-between;
+}
+button[data-v-6ca2fccc]{
+    border:none;
+    color: #393939;
+    background: #ffffff;
+}
+.todo-tabs-active[data-v-6ca2fccc]{
+    border: none;
+    outline: none;
+    font-weight: 700;
+}
+button[data-v-6ca2fccc]:focus{
+    border: none;
+    outline: none;
+}
+.clear[data-v-6ca2fccc]{
+    color: #23c8db;
+}
+.clear[data-v-6ca2fccc]:hover{
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.header[data-v-384112d1]{
+    text-align: center;
+    font-size: 150px;
+    color: rgba(0,0,0,.5);
+}
+
+.todo-content[data-v-55232574]{
+    list-style: none;
+    padding: 0px 10px;
+}
+.todo-item[data-v-55232574]{
+    display: -webkit-box;
+    display: flex;
+    -webkit-box-pack: justify;
+            justify-content: space-between;
+}
+.todo-item div>span[data-v-55232574]{
+    color: #393939;
+    line-height: 32px;
+    padding-left: 10px;
+}
+.todo-item-delete[data-v-55232574]{
+    color: transparent;
+}
+.todo-item:hover > .todo-item-delete[data-v-55232574]{
+    color: #393939;
+}
+.todo-item:hover > .todo-item-delete[data-v-55232574]:hover{
+    color: #23c8db;
+    cursor: pointer;
+}
+.todo-item-completed[data-v-55232574]{
+    text-decoration: line-through;
+    color: gray!important;
+}
+input[type='checkbox'][data-v-55232574]{
+    width: 32px;
+    height: 32px;
+    background-color: #fff;
+    -webkit-appearance:none;
+       -moz-appearance:none;
+            appearance:none;
+    border: 2px solid #23c8db;
+    border-radius:50%;
+    outline: none;
+}
+input[type='checkbox'][data-v-55232574]:checked{
+    border: 2px solid #23c8db;
+    width: 32px;
+    height: 32px;
+    background: url(check.7fd4f6dc.png)no-repeat center;
+}
+
+
+.todo[data-v-1d4f4980]{
+    background: #ffffff;
+    border-radius: 5px;
+    width: 60%;
+    margin: 0 auto;
+    padding: 20px 30px;
+}
+.todo-input[data-v-1d4f4980]{
+    font-size: 20px;
+    height: 50px;
+    width: 100%;
+    border: none;
+}
+.todo-input[data-v-1d4f4980]:focus{
+    outline: none;
+    border:none;
+}
+.footer{
+    position: absolute;
+    bottom: 0px;
+    left:0px;
+    width: 100%;
+    overflow: hidden;
+    margin: 10px 0px;
+}
+.footer>div{
+    text-align: center;
+    font-size: 18px;
+    color: #393939;
+}body{
+    background-image: url(bg.ccb941d1.jpeg);
+    background-size: cover;
+}

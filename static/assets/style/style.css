@@ -1,0 +1,15 @@
+body{
+    background-image: url('../images/bg.jpeg');
+    background-size: cover;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    -webkit-transition: all 0.5s ease;
+    transition: all 0.5s ease;
+}
+.fade-enter,
+.fade-leave-to {
+    transform: translateY(50px);
+    opacity: 0;
+}

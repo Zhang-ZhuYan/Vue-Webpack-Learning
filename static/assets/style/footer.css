@@ -1,0 +1,13 @@
+.footer{
+    position: absolute;
+    bottom: 0px;
+    left:0px;
+    width: 100%;
+    overflow: hidden;
+    margin: 10px 0px;
+}
+.footer>div{
+    text-align: center;
+    font-size: 18px;
+    color: #393939;
+}
