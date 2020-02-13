@@ -20,19 +20,12 @@
                    @toggerFilter="toggerFilter"
                    @clearAllCompleted="clearAllCompleted"
         />
-        <tabs :value="'value1111'">
-            <tab :label="'标签1'"></tab>
-            <tab :label="'标签2'"></tab>
-            <tab :label="'标签3'"></tab>
-        </tabs>
     </div>
 </template>
 <script>
     import { mapState,mapGetters,mapMutations,mapActions } from 'vuex'
     import TodoItem from './item.vue'
     import TodoTabs from './tabs.vue'
-    import Tabs from '../../component/tabs/tabs.vue'
-    import Tab from '../../component/tabs/tab.vue'
     let index = 1;
     export default{
         metaInfo: {
@@ -79,8 +72,6 @@
         components: {
             "todo-item": TodoItem,
             "todo-tabs": TodoTabs,
-            "tabs":Tabs,
-            "tab": Tab
         },
         methods: {
             addToDo(e){

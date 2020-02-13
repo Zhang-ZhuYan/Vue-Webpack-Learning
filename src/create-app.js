@@ -7,7 +7,9 @@ import createStore from './store';
 import createRouter from './router'
 import ShowMessage from './component/message'
 import '../static/assets/style/style.css'
+import Tabs from './component/tabs'
 
+Vue.use(Tabs); 
 
 Vue.use(Vuex);
 Vue.use(VueRouter);

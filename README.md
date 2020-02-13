@@ -325,4 +325,513 @@ webpack.config.client.js --webpack根据环境配置的部分
     }
 ``` 
 
+# 服务端渲染
+## 为什么使用服务端渲染
+  1. 有利于SEO(搜索引擎优化)，爬虫一般只会抓取源码，不会执行网站的脚本。  
+  2. 更利于首屏渲染，首屏的渲染是node发送过来的html字符串，并不依赖于js文件了，这就会使用户更快的看到页面的内容。减少页面白屏等待时间。
+## webpack配置
+  1. 新增服务端渲染webpack配置文件，主要的插件vue-server-renderer
+  ```
+  webpack.config.server.js
+
+const path = require('path')
+const ExtractPlugin = require('extract-text-webpack-plugin')
+const merge = require('webpack-merge')
+const webpack = require('webpack')
+const webpackConfigBase = require('./webpack.config.base')
+const vueServerPlugin = require('vue-server-renderer/server-plugin')
+const VueLoaderPlugin = require('vue-loader/lib/plugin'); //引入这行，没有打包会报错
+
+let definePlugin = [
+
+]
+
+let config = merge(webpackConfigBase,{
+    target: 'node', //是在node环境下执行打包的
+    mode: 'none',
+    entry: path.join(__dirname,'../src/server.entry.js'), //入口文件
+    devtool: '#source-map',
+    output: {
+        libraryTarget: 'commonjs2', //打包后是module.export的方式
+        filename: 'server-bulid.js',
+        path: path.join(__dirname,'../server-build')//打包文件存放目录
+    },
+    externals: Object.keys(require('../package.json').dependencies),//打包时需要的依赖
+    resolve: {
+        alias: {
+            "vue": path.join(__dirname,'../node_modules/vue/dist/vue.esm.js')
+        }
+    },
+    module: {
+        rules: [
+            {
+                test: /\.css$/,
+                use: ExtractPlugin.extract({
+                    fallback: 'vue-style-loader',
+                    use: [
+                        'css-loader',
+                        {
+                            loader: 'postcss-loader',
+                            options: {
+                                sourceMap: true
+                            }
+                        }
+                    ]
+                })
+            }
+        ]
+    },
+    plugins: [
+        new webpack.DefinePlugin({
+            'process.env': {
+                NODE_ENV: JSON.stringify(process.env.NODE_ENV || "'development'"),
+                VUE_ENV: "'server'"
+            }
+        }),
+        new vueServerPlugin(),
+        new VueLoaderPlugin(),
+        new ExtractPlugin('style.[md5:contenthash:hex:8].css')
+    ]
+});
+
+
+module.exports = config;
+
+  ```
+  2. 新建server/server.js，服务端渲染的主要代码，在这里面去实例化一个webpack compiler实例
+  ```
+  const koa = require('koa')  //引入koa
+const send = require('koa-send')   //用于处理静态文件
+const path = require('path')
+const staticRouter = require('./static') //静态资源的处理
+
+const app = new koa();  //新建一个app实例
+
+const isDev = process.env.NODE_ENV === 'development';  //开发环境和生产环境中的服务端渲染有一点不同，所以要定义一个变量来区分环境
+
+//基本中间件，记录请求信息
+app.use(async (cxt, next) => {
+    try{
+        console.info(`require with path ${cxt.path}`);
+        await next();
+    }catch (err){
+        console.info(err);
+        cxt.status = 500;
+        if(isDev){
+            cxt.body = err.message;  //如果是开发环境，直接打印提示到界面上
+        }else{
+            cxt.body = 'please try again later';
+        }
+    }
+});
+
+app.use(async (cxt, next) => { //处理请求/favicon.ico报错
+    if(cxt.path === '/favicon.ico'){
+        await send(cxt, '/favicon.ico', { root: path.join(__dirname, '../') });
+    }else{
+        await next();
+    }
+})
+
+//静态资源
+app.use(staticRouter.routes()).use(staticRouter.allowedMethods());
+
+
+let pageRouter;
+if(isDev){
+    pageRouter = require('./router/dev-ssr')
+}else{
+    pageRouter = require('./router/ssr')
+}
+
+app.use(pageRouter.routes()).use(pageRouter.allowedMethods());
+
+//执行命名时没有指定ip和端口号，就使用默认的设置
+const HOST = process.env.HOST || '0.0.0.0';
+const PORT = process.env.PORT || '3333';
+//监听
+app.listen(PORT, HOST, () => {
+    console.info(`server is listening on http://${HOST}:${PORT}`);
+})
+  ```
+ 
+ 3. koa-router
+ 根据环境分别新增dev-ssr.js和ssr.js
+ ```
+const Router = require('koa-router')
+const axios = require('axios')
+const MemoryFs = require('memory-fs')
+const webpack = require('webpack')
+const path = require('path')
+const fs = require('fs')
+const VueServerRenderer = require('vue-server-renderer')
+const serverConfig = require('../../build/webpack.config.server')
+const ServerRenderer = require('../server-render')
+
+const serverCompiler = webpack(serverConfig); //compiler负责文件监听和启动编译，compiler实例中包含了完整的webpack配置，全局只有一个compiler实例
+const mfs = new MemoryFs();  //memory-fs将打包文件保存到内存，提高访问速度，减少代码写入文件的开销
+serverCompiler.outputFileSystem = mfs;
+
+let bundle;
+//监听文件的变化，启动新的编译
+//err：编译过程中的报错信息
+serverCompiler.watch({}, (err, status) => {
+    if(err) throw err;
+    status = status.toJson();
+    status.errors.forEach(error => console.log(error));
+    status.warnings.forEach(warning => console.warn(warning));
+
+    //获取编译后生成的文件路径，默认文件名为：vue-ssr-server-bundle.json
+    const bundlePath = path.join(serverConfig.output.path,'vue-ssr-server-bundle.json');
+    //重新读取编译后的文件到内存中，编译后生成的文件时json格式，所以从内存读取出后要转换格式，必须指定编码格式，不然默认为二进制
+    bundle = JSON.parse(mfs.readFileSync(bundlePath,'utf-8'));
+})
+
+/*
+服务端渲染方法
+问题：开发时如果代码改变，需要实时去获取新的打包文件
+解决方法：
+同时开启客户端启动的线程，在客户端代码打包完成后，发送请求去获取manifest
+*/
+const handleSSR = async (cxt) => {
+    if(!bundle){
+        cxt.body = 'please wait amount';
+        return;
+    }
+    //读取js代码
+    const clientManifestResp = await axios.get(
+        'http://127.0.0.1:8000/public/vue-ssr-client-manifest.json'
+    )
+
+    const clientManifest = clientManifestResp.data;
+
+    //读取html模板，使用ejs
+    const template = fs.readFileSync(path.join(__dirname, '../server-template.ejs'),'utf-8');
+
+    //inject:false,不使用插件指定的模板
+    const renderer = VueServerRenderer.createBundleRenderer(
+        bundle,
+        {
+            inject: false,
+            clientManifest
+        }
+    );
+
+    await ServerRenderer(cxt, renderer, template);
+}
+
+const router = new Router();
+router.get('*', handleSSR); //默认所有的请求都用handleSSR去处理
+
+module.exports = router;
+ ```
+ ssr.js
+ ```
+const VueServerRenderer = require('vue-server-renderer');
+const Router = require('koa-router')
+const ServerRender = require('../server-render')
+const fs = require('fs');
+const path = require('path')
+
+//生产环境可以直接取打包之后的manifest，直接从目录中读取
+const clientManifest = require('../../public/vue-ssr-client-manifest.json');
+
+const renderer = VueServerRenderer.createBundleRenderer(
+    path.join(__dirname,'../../server-build/vue-ssr-server-bundle.json'),
+    {
+        inject: false,
+        clientManifest
+    }
+)
+
+//获取模板
+const template = fs.readFileSync(
+    path.join(__dirname,'../server-template.ejs'),
+    'utf-8'
+)
+
+const router = new Router();
+router.get('*', async (cxt)=> {
+   await ServerRender(cxt, renderer, template);
+})
+
+module.exports = router;
+
+ ```
+ 4. server-render
+ ```
+const ejs = require('ejs')
+
+module.exports = async (cxt, renderer, template) => {
+    cxt.headers['Content-Type'] = 'text/html';
+    const context = {url: cxt.path};
+    try{
+        const appString = await renderer.renderToString(context);
+        const { title } = context.meta.inject();
+        const html = ejs.render(template, {
+            appString,
+            style: context.renderStyles(),
+            scripts: context.renderScripts(),
+            title: title.text()
+        });
+        cxt.body = html;
+    }catch (err){
+        console.info('render error:' + err);
+        throw err;
+    }
+}
+ ```
+  5. src下新建server.entry.js，打包的入口文件
+  ```
+import createApp from './create-app'
+
+export default context => {
+    return new Promise((resolve, reject)=>{
+        const {app, router} = createApp();
+        router.push(context.url);
+
+        router.onReady(() => {
+            const matchedComponents = router.getMatchedComponents();
+            if(matchedComponents.length){
+                reject(new Error('not component matched'));
+            }
+            context.meta = app.$meta(); //服务端渲染时，需要手动去更新模板中的title
+            resolve(app);
+        })
+    })
+}
+```
+6. create-app.js
+```
+import Vue from 'vue'
+import VueRouter from 'vue-router'
+import App from './App.vue'
+import Vuex from 'vuex'
+import Meta from 'vue-meta'
+import createStore from './store';
+import createRouter from './router'
+import ShowMessage from './component/message'
+import '../static/assets/style/style.css'
+
+
+Vue.use(Vuex);
+Vue.use(VueRouter);
+Vue.use(Meta);
+Vue.use(ShowMessage);
+
+export default () => {
+    const router = createRouter();
+    const store = createStore();
+
+    const app = new Vue({
+        router,
+        store,
+        render: h => h(App)
+    })
+
+    return {app,router,store};
+}
+
+```
+# nodemon配置
+  上面要启动两个线程比较麻烦，可以使用nodemon合并连个线程  
+  1. 安装nodemon
+  2. nodemon.json
+  3. 修改package.json
+  ```
+    "dev:client": "cross-env NODE_ENV=development webpack-dev-server --config build/webpack.config.client.js",
+    "dev:server": "nodemon server/server.js",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\" ",
+  ```
+# 自定义组件
+## 用方法调用的组件，类似alert()
+1. 确定需求，使用方法应为，this.$showMessage({content: '11111'})
+2. src/component/message，下新增message.vue
+```
+<template>
+    <transition @afterLeave="handleRemove">
+        <div
+                class="continer"
+                :style="style"
+                v-show="visible"
+                @mouseenter="clearTimer"
+                @mouseleave="createTimer"
+        >
+            <div class="title" v-show="showTitle">
+                {{ title }}
+            </div>
+            <div class="main">
+                <span>{{ content }}</span>
+            </div>
+            <div class="btns">
+                <a class="btn" @click="handleClose">×</a>
+            </div>
+        </div>
+    </transition>
+</template>
+<script>
+    export default {
+        name: 'showMessage',
+        data(){
+            return {
+                visible: true
+            }
+        },
+        props: {
+            content: {
+                require: true,
+                type: String
+            },
+            title: {
+                default: '提示信息'
+            },
+            showTitle: {
+                default: false,
+                type: Boolean
+            }
+        },
+        methods: {
+            handleClose(e){
+                e.preventDefault()
+                this.$emit('close');
+            },
+            handleRemove(){
+                this.$emit('closed');
+            },
+            createTimer(){},
+            clearTimer(){}
+        },
+        computed: {
+            style(){
+                return {};
+            }
+        }
+    }
+</script>
+<style lang="css" scoped>
+    .continer {
+        width: 400px;
+        background: #ffffff;
+        padding: 10px;
+        border-radius: 5px;
+    }
+    .title{
+        border-bottom: 1px solid #f9f9f9;
+        padding-bottom: 10px;
+    }
+    .main {
+        margin: 20px 0px 0px 0px;
+        color: #787e87;
+        min-height: 40px;
+    }
+    .btns{
+        position: absolute;
+        right: 10px;
+        top: 10px;
+    }
+    .btns > a{
+        text-align: center;
+        padding: 5px 10px;
+        cursor: pointer;
+    }
+    .btns > a:hover{
+        background: #f9f9f9;
+    }
+
+    .v-enter-active,
+    .v-leave-active {
+        -webkit-transition: all 0.5s ease;
+        transition: all 0.5s ease;
+    }
+    .v-enter,
+    .v-leave-to {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+
+</style>
+```
+2. 新增 func-message.js，用于扩展message.vue
+3. 新增 function.js，适应Vue.extend()去注册组件
+```
+import Vue from 'vue'
+import component from './func-message'
+
+const MessageConstructor = Vue.extend(component);
+let instances = [];
+let seed = 1; //多个组件的序号
+
+//如果只用v-show控制组件显示，dom节点还未真正移除
+const remove = (instance) => {
+    if(!instance) return;
+    const index = instances.findIndex(item => instance.id === item.id);
+    instances.splice(index,1);
+    return index;
+}
+//关闭一个提示时，要调整其它提示框的位置
+const changeVerticalOffset = (index,height) => {
+    if(index == instances.length) return;
+    instances.forEach((item,i) => {
+        if(i > index){
+            item.verticalOffset = instances[i-1].verticalOffset;
+        }
+    });
+    instances[index].verticalOffset = height;
+}
+
+
+const showMessage = (options) => {
+    if(process.env.$isServer) return; //服务端渲染没有dom，如果方法中有设计dom操作，在服务端渲染时会报错
+    //autoClose自动关闭的时间
+    const {
+        autoClose,
+        ...rest
+    } = options;
+
+    const instance = new MessageConstructor({
+        propsData: {...rest}, //在extend中要使用propsData
+        data: {
+            autoClose: autoClose === undefined ? 3000: this.autoClose,
+        }
+    });
+
+    const id = `message_div_${seed++}`;
+    instance.id = id;
+    instance.vm = instance.$mount(); //生成$el对象，但是还未插入到dom中
+    document.body.appendChild(instance.vm.$el); //这是一个全局提醒组件，放在body下面
+
+    //计算高度，放在右下角，初始值为0px
+    let verticalOffset = 0;
+    instances.forEach(item => {
+        verticalOffset += item.$el.offsetHeight + 10; //默认多个提示框之间有10px的距离
+    })
+    instance.verticalOffset = verticalOffset;
+    instances.push(instance);
+
+    //this.emit('close')
+    instance.vm.$on('close', () => {  //监听关闭事件
+        instance.vm.visible = false;
+    });
     
+    instance.vm.$on('closed', () => {
+        const index = remove(instance);
+        const height = instance.verticalOffset;
+        document.body.removeChild(instance.vm.$el);
+        instance.vm.$destroy();
+        changeVerticalOffset(index,height);
+    })
+    return instance.vm;
+}
+
+export default showMessage;
+```
+4. 在vue中去使用自定义的组件
+```
+import Message from './message.vue'
+import showMessage from './function'
+
+export default (Vue) => {
+    Vue.use(Message.name,Message);
+    Vue.prototype.$showMessage = showMessage;
+}
+```

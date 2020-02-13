@@ -1,7 +1,7 @@
 const koa = require('koa')  //引入koa
 const send = require('koa-send')   //用于处理静态文件
 const path = require('path')
-const staticRouter = require('./static')
+const staticRouter = require('./static') //定义了请求拦截的路径
 
 const app = new koa();  //新建一个app实例
 
