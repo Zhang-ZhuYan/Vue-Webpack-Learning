@@ -1,5 +1,10 @@
 <template>
     <div class="todo">
+        <tabs :value="tabValue" @change="handleChangeTab">
+            <tab :label="'标签1'" index="1"></tab>
+            <tab index="2"><strong slot="label">标签211白</strong></tab>
+            <tab :label="'标签'" index="3"></tab>
+        </tabs>
         <input type="text"
                class="todo-input"
                autofocus="autofocus"
@@ -35,6 +40,7 @@
             return {
                 todos: [],
                 filter: 'all',
+                tabValue: '1'
             }
         },
         computed: {
@@ -90,6 +96,9 @@
             },
             clearAllCompleted(){
                 this.todos = this.todos.filter(item => !item.completed);
+            },
+            handleChangeTab(index){
+                this.tabValue = index;
             },
             ...mapMutations(['updateCount','a/updateTextA']),
             ...mapActions(['updateCountAsync','a/changeTextA'])

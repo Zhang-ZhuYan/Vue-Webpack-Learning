@@ -1,6 +1,7 @@
 <script type="text/jsx" lang="jsx">
 export default {
     name: 'Tab',
+    inject: ['tabs'],
     props: {
         index: {
             type: [Number,String]
@@ -11,20 +12,27 @@ export default {
     },
     computed: {
         active(){
-            return true;
+            return this.tabs.value == this.index;
+        }
+    },
+    methods: {
+        handleClick(){
+            this.$parent.change(this.index);
         }
     },
     render() {
-        const tabstyle = {
+        const tabName =  `tab_${this.index}`;
+        let tabstyle = {
             tab: true,
             active: this.active
         }
+        tabstyle[tabName] = true;
         let tagLabel = this.$slots.label || <span>{this.label}</span>;
         return (
-            <div class={tabstyle}>
+            <div class={tabstyle} on-click={this.handleClick}>
                 {tagLabel}
             </div>
-        )
+        ) 
     }
 }
 </script>
@@ -41,6 +49,9 @@ export default {
     font-weight: 500;
     color: #303133;
     position: relative; 
+}
+.active{
+    color: #409eff;
 }
 
 </style>

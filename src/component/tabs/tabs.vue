@@ -1,17 +1,58 @@
 <script type="text/jsx" lang="jsx">
 export default {
     name: 'Tabs',
+    provide() {
+        let tabs = {};
+        Object.defineProperty(tabs,'value',{
+            enumerable: true,
+            get: (v) => v=this.value
+        })
+        return {
+            tabs
+        } 
+    },
+    data() {
+        return {
+            activeBarWidth: 50,
+            translateX: 0
+        }
+    },
     props: {
         value: {
             type: [String,Number],
             require: true
         }
     },
+    computed: {
+        activeBarStyle(){
+            return {
+                width: `${this.activeBarWidth}px`,
+                transform: `translateX(${this.translateX}px)`
+            }
+        }
+    },
+    mounted(){
+        this.toActiveTab(this.value);
+    },
+    methods: {
+        change(index){
+            this.$emit('change',index);
+            this.toActiveTab(index);
+        },
+        toActiveTab(index){
+            const tabNav = this.$refs.tabsNav;
+            const tab = this.$el.querySelector('.tab_'+index);
+            const tabNavRect = tabNav.getBoundingClientRect();
+            const tabRect = tab.getBoundingClientRect();
+            this.translateX = Math.abs(tabRect.left - tabNavRect.left);
+            this.activeBarWidth = tabRect.width;
+        }
+    },
     render() {
         return (
             <div class="tabs">
-                <div class="tabs-nav">
-                    <div class="tabs__active-bar"></div>
+                <div class="tabs-nav" ref="tabsNav">
+                    <div class="tabs__active-bar" style={this.activeBarStyle}></div>
                     {this.$slots.default}
                 </div>
             </div>
@@ -34,8 +75,7 @@ export default {
     bottom: 0;
     width: 100%;
     height: 2px;
-    /*background-color: #e4e7ed;*/
-    background-color: red;
+    background-color: #e4e7ed;
     z-index: 1;
 }
 .tabs__active-bar {
