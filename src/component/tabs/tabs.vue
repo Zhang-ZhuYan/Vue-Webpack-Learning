@@ -1,6 +1,11 @@
 <script type="text/jsx" lang="jsx">
+import tabContent from './tab-content.vue'
+
 export default {
     name: 'Tabs',
+    components: {
+        tabContent
+    },
     provide() {
         let tabs = {};
         Object.defineProperty(tabs,'value',{
@@ -14,7 +19,8 @@ export default {
     data() {
         return {
             activeBarWidth: 50,
-            translateX: 0
+            translateX: 0,
+            panes: []
         }
     },
     props: {
@@ -50,11 +56,14 @@ export default {
     },
     render() {
         return (
-            <div class="tabs">
-                <div class="tabs-nav" ref="tabsNav">
-                    <div class="tabs__active-bar" style={this.activeBarStyle}></div>
-                    {this.$slots.default}
+            <div class="tabs-continer">
+                <div class="tabs">
+                    <div class="tabs-nav" ref="tabsNav">
+                        <div class="tabs__active-bar" style={this.activeBarStyle}></div>
+                        {this.$slots.default}
+                    </div>
                 </div>
+                <tab-content panes={this.panes}></tab-content>
             </div>
         )
     }

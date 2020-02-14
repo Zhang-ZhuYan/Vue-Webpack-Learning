@@ -3,6 +3,7 @@
         <span>{{ inCompleteLength }}条未完成</span>
         <div>
             <button v-for="item in filterStatus"
+                    :key="item.id"
                     @click="toggerFilter(item.value)" :class="filter == item.value?'todo-tabs-active':''"
             >{{ item.text }}</button>
         </div>

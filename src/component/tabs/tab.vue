@@ -10,6 +10,9 @@ export default {
             type: String
         }
     },
+    mounted(){
+        this.$parent.panes.push(this);
+    },
     computed: {
         active(){
             return this.tabs.value == this.index;
