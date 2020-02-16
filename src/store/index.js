@@ -5,6 +5,7 @@ import defaultMutations from './mutations/default'
 import defaultActions from './actions/default'
 
 const isDev = process.env.NODE_ENV === 'development'
+
 //因为后面会用到服务端渲染，如果每次渲染都使用同一个store会导致内存溢出，所以应该封装一个函数，在函数中返回store对象
 export default  () => {
     const store = new Vuex.Store({

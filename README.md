@@ -835,3 +835,23 @@ export default (Vue) => {
     Vue.prototype.$showMessage = showMessage;
 }
 ```
+
+## 自定tabs组件
+使用方法  
+```
+value:指定激活的标签页
+index:标签页id，value=index时，该标签页为选中状态
+label:标签页的名称，可以用属性的方式传入，也可以使用插槽
+<tabs value="1" @change="handleChangeTab">
+    <tab label="选项1" index="1">
+        <span>选项1的内容</span>
+    </tab>
+    <tab index="1">
+        <span slot="label">选项2</span>
+        <span>选项2的内容</span>
+    </tab>
+</tabs>
+```
+
+# 数据接口
+使用APICloud

@@ -1,9 +1,25 @@
 const koa = require('koa')  //引入koa
+const koaBody = require('koa-body'); //处理body中的数据
+const koaSession = require('koa-session')
 const send = require('koa-send')   //用于处理静态文件
 const path = require('path')
-const staticRouter = require('./static') //定义了请求拦截的路径
+const staticRouter = require('./router/static') //定义了请求拦截的路径
+const apiRouter = require('./router/api')
+const userRouter = require('./router/user')
+const createDB = require('./db/db');
+const {appID, appKey} = require('../api.config');
+
+
+const db = createDB(appID, appKey);
+
 
 const app = new koa();  //新建一个app实例
+
+app.keys = ['vue ssr'];
+app.use(koaSession({
+    key: 'v-ssr',
+    //maxAge: 2*60*60*1000 //单位毫秒
+},app))
 
 const isDev = process.env.NODE_ENV === 'development';  //开发环境和生产环境中的服务端渲染有一点不同，所以要定义一个变量来区分环境
 
@@ -31,8 +47,15 @@ app.use(async (cxt, next) => {
     }
 })
 
-app.use(staticRouter.routes()).use(staticRouter.allowedMethods());
+app.use(async(cxt,next) => {
+    cxt.db = db;
+    await next();
+})
 
+app.use(koaBody());
+app.use(userRouter.routes()).use(userRouter.allowedMethods());
+app.use(staticRouter.routes()).use(staticRouter.allowedMethods());
+app.use(apiRouter.routes()).use(apiRouter.allowedMethods());
 
 let pageRouter;
 if(isDev){

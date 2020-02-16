@@ -7,12 +7,22 @@ export default {
             require: true
         }
     },
+    watch:{
+    　　data:{
+    　　   immediate:true,
+           handler:function(){
+        
+           }
+    　　}
+    },  　　
     render() {
         const content = this.panes.map(pane => {
             return pane.active ? pane.$slots.default : null;
         });
         return (
-            <div>{ content }</div>  
+            <div class="tab-content">
+                {content}
+            </div>  
         )
     }
 }

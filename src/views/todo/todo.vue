@@ -1,23 +1,13 @@
 <template>
     <div class="todo">
-        <tabs :value="tabValue" @change="handleChangeTab">
-            <tab :label="'标签1'" index="1">
-                <span>content1{{ inputValue }}</span>
-            </tab>
-            <tab index="2">
-                <strong slot="label">标签211白</strong>
-                <span>content2</span>
-            </tab>
-            <tab :label="'标签'" index="3">
-                <span>content3</span>
-            </tab>
+        <tabs :value="filter" @change="handleChangeTab">
+            <tab :label="item.text" :index="item.value" v-for="item in filterStatus" :key="item.value"></tab>
         </tabs>
         <input type="text"
                class="todo-input"
                autofocus="autofocus"
                placeholder="接下来要做点什么呢？"
-               @keyup.enter="addToDo"
-               v-model="inputValue"
+               @keyup.enter="handleAddTodo"
         >
         <hr>
         <todo-item
@@ -25,12 +15,12 @@
                 :todo="todo"
                 @deleteOne="deleteOne"
                 :key="todo.id"
+                @handleStatus="handleStatus"
         />
         <div :style="filterTodo.length == 0?'height:40px':''">{{ filterTodo.length == 0?'暂无数据':'' }}</div>
         <hr>
         <todo-tabs :filter="filter"
                    :todos="todos"
-                   @toggerFilter="toggerFilter"
                    @clearAllCompleted="clearAllCompleted"
         />
     </div>
@@ -38,7 +28,7 @@
 <script>
     import { mapState,mapGetters,mapMutations,mapActions } from 'vuex'
     import TodoItem from './item.vue'
-    import TodoTabs from './tabs.vue'
+    import TodoTabs from './helper.vue'
     let index = 1;
     export default{
         metaInfo: {
@@ -46,10 +36,21 @@
         },
         data(){
             return {
-                todos: [],
+                //todos: [],
                 filter: 'all',
-                tabValue: '1',
-                inputValue: ''
+                filterStatus: [
+                    {
+                        text: '完成',
+                        value: 'completed'
+                     },
+                    {
+                        text: '未完成',
+                        value: 'incomplete'
+                    },{
+                        text: '全部',
+                        value: 'all'
+                    }
+                ]
             }
         },
         computed: {
@@ -65,7 +66,8 @@
                 //count1: 'count'
                 count1: (state)=>{
                     return state.count + 1;
-                }
+                },
+                todos: 'todos'
             }),
            /*count(){
                 return this.$store.state.count;
@@ -89,28 +91,40 @@
             "todo-tabs": TodoTabs,
         },
         methods: {
-            addToDo(e){
-                this.todos.unshift({
-                    id: index++,
-                    content: e.target.value,
+            handleAddTodo(e){
+                const content = e.target.value.trim();
+                this.addTodoAction({
+                    content: content,
                     completed: false
                 });
                 e.target.value='';
             },
-            deleteOne(id){
-                this.todos.splice(this.todos.findIndex(todo => id===todo.id),1);
+            handleStatus(todo){
+                const param = {
+                    id: todo.id,
+                    todo: {
+                        completed: !todo.completed
+                    }
+                }
+                this.updateTodoAction(param);
             },
-            toggerFilter(filter){
-                this.filter = filter;
+            deleteOne(id){
+                this.deleteTodoAction(id);
             },
             clearAllCompleted(){
-                this.todos = this.todos.filter(item => !item.completed);
+                const ids = this.todos.reduce((pre,item,index)=>{
+                    if(item.completed){
+                        pre.push(item.id);
+                    }
+                    return pre;
+                },[]);
+                this.deleteAllAction(ids);
             },
             handleChangeTab(index){
-                this.tabValue = index;
+                this.filter = index;
             },
             ...mapMutations(['updateCount','a/updateTextA']),
-            ...mapActions(['updateCountAsync','a/changeTextA'])
+            ...mapActions(['updateCountAsync','a/changeTextA','queryAllTodo','addTodoAction','deleteTodoAction','deleteAllAction','updateTodoAction'])
         },
         mounted(){
             //this.$store.dispatch('updateCountAsync',{count: 5,timer: 5000});
@@ -118,6 +132,7 @@
             //this.updateCountAsync({count: 10, timer: 5000});
             this['a/updateTextA']('I am A');
             this['a/changeTextA']('change TextA');
+            this['queryAllTodo']();
         }
     }
 </script>
@@ -128,6 +143,7 @@
         width: 60%;
         margin: 0 auto;
         padding: 20px 30px;
+        min-width: 400px;
     }
     .todo-input{
         font-size: 20px;

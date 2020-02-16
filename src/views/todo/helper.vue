@@ -1,12 +1,6 @@
 <template>
     <div class="todo-tabs">
         <span>{{ inCompleteLength }}条未完成</span>
-        <div>
-            <button v-for="item in filterStatus"
-                    :key="item.id"
-                    @click="toggerFilter(item.value)" :class="filter == item.value?'todo-tabs-active':''"
-            >{{ item.text }}</button>
-        </div>
         <button class="clear" @click="clearAllCompleted()">删除已完成</button>
     </div>
 </template>
@@ -14,19 +8,7 @@
     export default{
         data(){
             return {
-                filterStatus: [
-                    {
-                        text: '完成',
-                        value: 'completed'
-                     },
-                    {
-                        text: '未完成',
-                        value: 'incomplete'
-                    },{
-                        text: '全部',
-                        value: 'all'
-                    }
-                ]
+                
             }
         },
         props: {
@@ -50,9 +32,6 @@
             },
             clearAllCompleted(){
                 this.$emit('clearAllCompleted');
-            },
-            toggerFilter(filter){
-                this.$emit('toggerFilter',filter);
             }
         }
     }

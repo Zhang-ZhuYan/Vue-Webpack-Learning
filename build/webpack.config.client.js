@@ -31,7 +31,11 @@ const devServer = {
         historyApiFallback: {
             index: '/public/index.html'
         },
-        hot: true
+        hot: true,
+        proxy: {
+            '/api': 'http://127.0.0.1:3333/',
+            '/user': 'http://127.0.0.1:3333/'
+        }
 }
 
 let config

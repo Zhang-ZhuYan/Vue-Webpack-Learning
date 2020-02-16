@@ -5,7 +5,7 @@
                 <input style="display: table-cell"
                        type="checkbox"
                        :checked="todo.completed"
-                       v-model="todo.completed"
+                       @click="changeStatus"
                 />
                 <span :class="todo.completed?'todo-item-completed':''">{{ todo.content }}</span>
             </div>
@@ -29,6 +29,9 @@
         methods:{
             deleteOne(){
                 this.$emit('deleteOne',this.todo.id);
+            },
+            changeStatus(){
+                this.$emit('handleStatus', this.todo);
             }
         }
     }
