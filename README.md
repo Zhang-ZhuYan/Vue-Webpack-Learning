@@ -356,7 +356,7 @@ let config = merge(webpackConfigBase,{
         filename: 'server-bulid.js',
         path: path.join(__dirname,'../server-build')//打包文件存放目录
     },
-    externals: Object.keys(require('../package.json').dependencies),//打包时需要的依赖
+    externals: Object.keys(require('../package.json').dependencies),//webpack打包时会将依赖的插件也一起打包到出口文件，因为服务端渲染是运行在node端，运行时会去node_modules中加载依赖，所以将dependencies的包排除不打包到server-bulid.js
     resolve: {
         alias: {
             "vue": path.join(__dirname,'../node_modules/vue/dist/vue.esm.js')
@@ -410,24 +410,24 @@ const app = new koa();  //新建一个app实例
 const isDev = process.env.NODE_ENV === 'development';  //开发环境和生产环境中的服务端渲染有一点不同，所以要定义一个变量来区分环境
 
 //基本中间件，记录请求信息
-app.use(async (cxt, next) => {
+app.use(async (ctx, next) => {
     try{
-        console.info(`require with path ${cxt.path}`);
+        console.info(`require with path ${ctx.path}`);
         await next();
     }catch (err){
         console.info(err);
-        cxt.status = 500;
+        ctx.status = 500;
         if(isDev){
-            cxt.body = err.message;  //如果是开发环境，直接打印提示到界面上
+            ctx.body = err.message;  //如果是开发环境，直接打印提示到界面上
         }else{
-            cxt.body = 'please try again later';
+            ctx.body = 'please try again later';
         }
     }
 });
 
-app.use(async (cxt, next) => { //处理请求/favicon.ico报错
-    if(cxt.path === '/favicon.ico'){
-        await send(cxt, '/favicon.ico', { root: path.join(__dirname, '../') });
+app.use(async (ctx, next) => { //处理请求/favicon.ico报错
+    if(ctx.path === '/favicon.ico'){
+        await send(ctx, '/favicon.ico', { root: path.join(__dirname, '../') });
     }else{
         await next();
     }
@@ -493,12 +493,13 @@ serverCompiler.watch({}, (err, status) => {
 解决方法：
 同时开启客户端启动的线程，在客户端代码打包完成后，发送请求去获取manifest
 */
-const handleSSR = async (cxt) => {
+const handleSSR = async (ctx) => {
     if(!bundle){
-        cxt.body = 'please wait amount';
+        ctx.body = 'please wait amount';
         return;
     }
-    //读取js代码
+    //读取js代码 
+    //在客户端webpack打包，使用vue-server-renderer/client-plugin生成vue-ssr-client-manifest.json
     const clientManifestResp = await axios.get(
         'http://127.0.0.1:8000/public/vue-ssr-client-manifest.json'
     )
@@ -517,7 +518,7 @@ const handleSSR = async (cxt) => {
         }
     );
 
-    await ServerRenderer(cxt, renderer, template);
+    await ServerRenderer(ctx, renderer, template);
 }
 
 const router = new Router();
@@ -551,8 +552,8 @@ const template = fs.readFileSync(
 )
 
 const router = new Router();
-router.get('*', async (cxt)=> {
-   await ServerRender(cxt, renderer, template);
+router.get('*', async (ctx)=> {
+   await ServerRender(ctx, renderer, template);
 })
 
 module.exports = router;
@@ -562,9 +563,9 @@ module.exports = router;
  ```
 const ejs = require('ejs')
 
-module.exports = async (cxt, renderer, template) => {
-    cxt.headers['Content-Type'] = 'text/html';
-    const context = {url: cxt.path};
+module.exports = async (ctx, renderer, template) => {
+    ctx.headers['Content-Type'] = 'text/html';
+    const context = {url: ctx.path};
     try{
         const appString = await renderer.renderToString(context);
         const { title } = context.meta.inject();
@@ -574,7 +575,7 @@ module.exports = async (cxt, renderer, template) => {
             scripts: context.renderScripts(),
             title: title.text()
         });
-        cxt.body = html;
+        ctx.body = html;
     }catch (err){
         console.info('render error:' + err);
         throw err;

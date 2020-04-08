@@ -73,7 +73,7 @@ export default {
     margin-bottom: 10px;
 }
 .form-input > input[type="text"],.form-input > input[type="password"]{
-   box-sizing: border-box; /* 宽度设置为100%，input元素会超出父元素，改成border-box解决 */
+   box-sizing: border-box;
    width: 100%;
    height: 35px;
    line-height: 35px;

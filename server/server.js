@@ -24,31 +24,31 @@ app.use(koaSession({
 const isDev = process.env.NODE_ENV === 'development';  //开发环境和生产环境中的服务端渲染有一点不同，所以要定义一个变量来区分环境
 
 //基本中间件，记录请求信息
-app.use(async (cxt, next) => {
+app.use(async (ctx, next) => {
     try{
-        console.info(`require with path ${cxt.path}`);
+        console.info(`require with path ${ctx.path}`);
         await next();
     }catch (err){
         console.info(err);
-        cxt.status = 500;
+        ctx.status = 500;
         if(isDev){
-            cxt.body = err.message;  //如果是开发环境，直接打印提示到界面上
+            ctx.body = err.message;  //如果是开发环境，直接打印提示到界面上
         }else{
-            cxt.body = 'please try again later';
+            ctx.body = 'please try again later';
         }
     }
 });
 
-app.use(async (cxt, next) => {
-    if(cxt.path === '/favicon.ico'){
-        await send(cxt, '/favicon.ico', { root: path.join(__dirname, '../') });
+app.use(async (ctx, next) => {
+    if(ctx.path === '/favicon.ico'){
+        await send(ctx, '/favicon.ico', { root: path.join(__dirname, '../') });
     }else{
         await next();
     }
 })
 
-app.use(async(cxt,next) => {
-    cxt.db = db;
+app.use(async(ctx,next) => {
+    ctx.db = db;
     await next();
 })
 

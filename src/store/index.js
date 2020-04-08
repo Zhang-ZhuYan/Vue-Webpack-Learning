@@ -12,7 +12,7 @@ export default  () => {
         strict: isDev,  //严格模式，一般在开发时开启
         state: defaultState,
         mutations: defaultMutations,
-        getters: defaultGetters,
+        getters: defaultGetters, 
         actions: defaultActions,
         modules: {
             a: {

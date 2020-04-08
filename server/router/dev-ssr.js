@@ -28,9 +28,9 @@ serverCompiler.watch({}, (err, status) => {
 })
 
 //服务端渲染方法
-const handleSSR = async (cxt) => {
+const handleSSR = async (ctx) => {
     if(!bundle){
-        cxt.body = 'please wait amount';
+        ctx.body = 'please wait amount';
         return;
     }
     //读取js代码
@@ -52,7 +52,7 @@ const handleSSR = async (cxt) => {
         }
     );
 
-    await ServerRenderer(cxt, renderer, template);
+    await ServerRenderer(ctx, renderer, template);
 }
 
 const router = new Router();
